@@ -4,28 +4,17 @@ import time
 from playwright.sync_api import sync_playwright
 
 
-def wake_app(url: str, retries: int = 3) -> bool:
+def wake_app(url: str, index: int, retries: int = 3) -> bool:
     for attempt in range(1, retries + 1):
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch()
                 page = browser.new_page()
                 page.goto(url, timeout=60000)
-
-                # Wait for either the wake button or the app itself to load
-                try:
-                    page.wait_for_selector(
-                        '[data-testid="wakeup-button-owner"]',
-                        timeout=15000
-                    )
-                    page.click('[data-testid="wakeup-button-owner"]')
-                    print(f"  Clicked wake button for {url}")
-                    # Now wait for app to actually load after clicking
-                    page.wait_for_load_state("networkidle", timeout=120000)
-                except Exception:
-                    # Button never appeared - app was already awake
-                    page.wait_for_load_state("networkidle", timeout=120000)
-
+                time.sleep(10)
+                page.screenshot(path=f"screenshot_{index}.png")
+                print(f"--- HTML for {url} ---")
+                print(page.content())
                 browser.close()
             print(f"✓ {url}")
             return True
@@ -33,7 +22,6 @@ def wake_app(url: str, retries: int = 3) -> bool:
             print(f"✗ Attempt {attempt} failed for {url}: {e}")
             if attempt < retries:
                 time.sleep(attempt * 15)
-
     print(f"✗ {url} failed after {retries} attempts")
     return False
 
@@ -47,7 +35,7 @@ def main():
     except json.JSONDecodeError:
         urls = [u.strip() for u in raw.replace(",", "\n").splitlines() if u.strip()]
 
-    results = {url: wake_app(url) for url in urls}
+    results = {url: wake_app(url, index) for index, url in enumerate(urls)}
     if not all(results.values()):
         raise SystemExit(1)
 
