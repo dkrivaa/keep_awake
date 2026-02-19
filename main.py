@@ -11,6 +11,7 @@ def wake_app(url: str, retries: int = 3) -> bool:
                 browser = p.chromium.launch()
                 page = browser.new_page()
                 page.goto(url, timeout=60000)
+                print(page.content())  # dump the full HTML
 
                 # Check if the app is sleeping and click the wake button
                 try:
