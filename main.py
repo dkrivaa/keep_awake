@@ -12,9 +12,16 @@ def wake_app(url: str, index: int, retries: int = 3) -> bool:
                 page = browser.new_page()
                 page.goto(url, timeout=60000)
                 time.sleep(10)
-                page.screenshot(path=f"screenshot_{index}.png")
-                print(f"--- HTML for {url} ---")
-                print(page.content())
+
+                try:
+                    wake_button = page.get_by_text("Yes, get this app back up!")
+                    if wake_button.is_visible(timeout=5000):
+                        wake_button.click()
+                        print(f"  Clicked wake button for {url}")
+                        page.wait_for_load_state("networkidle", timeout=120000)
+                except Exception:
+                    pass  # App was already awake
+
                 browser.close()
             print(f"✓ {url}")
             return True
