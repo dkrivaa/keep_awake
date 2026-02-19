@@ -11,21 +11,22 @@ def wake_app(url: str, retries: int = 3) -> bool:
                 browser = p.chromium.launch()
                 page = browser.new_page()
                 page.goto(url, timeout=60000)
-                print(page.content())  # dump the full HTML
 
-                # Check if the app is sleeping and click the wake button
+                # Wait for either the wake button or the app itself to load
                 try:
-                    wake_button = page.get_by_test_id("wakeup-button-owner")
-                    if wake_button.is_visible(timeout=5000):
-                        wake_button.click()
-                        print(f"  Clicked wake button for {url}")
+                    page.wait_for_selector(
+                        '[data-testid="wakeup-button-owner"]',
+                        timeout=15000
+                    )
+                    page.click('[data-testid="wakeup-button-owner"]')
+                    print(f"  Clicked wake button for {url}")
+                    # Now wait for app to actually load after clicking
+                    page.wait_for_load_state("networkidle", timeout=120000)
                 except Exception:
-                    pass  # No sleep screen, app was already awake
+                    # Button never appeared - app was already awake
+                    page.wait_for_load_state("networkidle", timeout=120000)
 
-                # Wait for the app to fully load
-                page.wait_for_load_state("networkidle", timeout=120000)
                 browser.close()
-
             print(f"✓ {url}")
             return True
         except Exception as e:
